@@ -234,6 +234,9 @@ class MultiImagePickerPlusPlugin : FlutterPlugin, MethodCallHandler, ActivityAwa
         val orientation: Int = getOrientation(context, photoUri)
         var srcBitmap: Bitmap
         `is` = context.contentResolver.openInputStream(photoUri)
+         if (`is` == null) {
+            return null
+        }
         srcBitmap = BitmapFactory.decodeStream(`is`)
         `is`?.close()
         if (orientation > 0) {
