@@ -222,6 +222,9 @@ class MultiImagePickerPlusPlugin : FlutterPlugin, MethodCallHandler, ActivityAwa
 
     private fun getCorrectlyOrientedImage(context: Context, photoUri: Uri): Bitmap? {
         var `is` = context.contentResolver.openInputStream(photoUri)
+        if (`is` == null) {
+            return null
+        }
         val dbo = BitmapFactory.Options()
         dbo.inScaled = false
         dbo.inSampleSize = 1
