@@ -39,6 +39,7 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.util.*
 import kotlin.math.abs
+import java.io.BufferedInputStream
 
 /** MultiImagePickerPlusPlugin */
 class MultiImagePickerPlusPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
@@ -221,49 +222,38 @@ class MultiImagePickerPlusPlugin : FlutterPlugin, MethodCallHandler, ActivityAwa
     }
 
     private fun getCorrectlyOrientedImage(context: Context, photoUri: Uri): Bitmap? {
-        // 打开输入流并使用 BufferedInputStream 包装
-        val inputStream = context.contentResolver.openInputStream(photoUri)
-        if (inputStream == null) {
+        var `is` = context.contentResolver.openInputStream(photoUri)
+        if (`is` == null) {
             return null
         }
-        
-        val bufferedInputStream = BufferedInputStream(inputStream)
+    
+        // 使用 BufferedInputStream 并标记流的位置以避免多次打开输入流
+        val bufferedInputStream = BufferedInputStream(`is`)
         bufferedInputStream.mark(bufferedInputStream.available())
-        
-        // 获取图片的尺寸信息
-        val dbo = BitmapFactory.Options().apply {
-            inScaled = false
-            inSampleSize = 1
-            inJustDecodeBounds = true
-        }
+    
+        val dbo = BitmapFactory.Options()
+        dbo.inScaled = false
+        dbo.inSampleSize = 1
+        dbo.inJustDecodeBounds = true
         BitmapFactory.decodeStream(bufferedInputStream, null, dbo)
-        
-        // 重置流到开始位置
+    
+        // 重置流到标记的位置
         bufferedInputStream.reset()
-        
-        // 获取图片的正确方向
+    
         val orientation: Int = getOrientation(context, photoUri)
-        
-        // 设置解码选项
-        val decodingOptions = BitmapFactory.Options().apply {
-            inSampleSize = 1 // 如果图片较大，可以调整这个值来减小图片大小
-        }
-        
-        // 解码图片
-        var srcBitmap = BitmapFactory.decodeStream(bufferedInputStream, null, decodingOptions)
-        bufferedInputStream.close()  // 关闭输入流
-        
-        // 旋转图片到正确的方向
-        if (orientation > 0) {
-            val matrix = Matrix().apply {
-                postRotate(orientation.toFloat())
-            }
+        var srcBitmap: Bitmap? = BitmapFactory.decodeStream(bufferedInputStream)
+        bufferedInputStream.close()
+    
+        // 确保 srcBitmap 非空后再进行操作
+        if (srcBitmap != null && orientation > 0) {
+            val matrix = Matrix()
+            matrix.postRotate(orientation.toFloat())
             srcBitmap = Bitmap.createBitmap(
                 srcBitmap, 0, 0, srcBitmap.width,
                 srcBitmap.height, matrix, true
             )
         }
-        
+    
         return srcBitmap
     }
 
